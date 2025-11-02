@@ -1,17 +1,215 @@
 import React, { useState, useContext, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BankingContext } from '../context/Index';
-import { Input, Select, Button, Checkbox, ProgressBar, StatusBox, Card, Alert, Badge } from '../components/common/Index';
-import { CheckCircle, AlertCircle, Save, Send } from 'lucide-react';
-
-// Import data functions
-import {
-  getAllBorrowers,
-  getAllLoans,
-} from '../data/Index';
+import { 
+  CheckCircle, AlertCircle, Save, Send, TrendingUp, 
+  DollarSign, User, Briefcase, CreditCard, Shield
+} from 'lucide-react';
+import { getAllBorrowers, getAllLoans } from '../data/Index';
 
 /**
- * LoanApplication Component
- * Comprehensive loan application with alternative data
+ * Input Component
+ */
+const Input = ({ label, name, value, onChange, error, type = 'text', placeholder, required }) => (
+  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+    <label className="block text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">
+      {label}
+      {required && <span className="text-red-600 ml-1">*</span>}
+    </label>
+    <input
+      type={type}
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={`w-full px-4 py-3 rounded-lg border-2 font-semibold text-gray-900 placeholder-gray-500 transition-all focus:outline-none ${
+        error
+          ? 'border-red-500 focus:border-red-600 bg-red-50'
+          : 'border-blue-300 focus:border-blue-500 bg-white'
+      }`}
+    />
+    {error && (
+      <motion.p
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-red-600 text-xs mt-2 font-bold tracking-tight"
+      >
+        ✗ {error}
+      </motion.p>
+    )}
+  </motion.div>
+);
+
+/**
+ * Select Component
+ */
+const Select = ({ label, name, value, onChange, options = [], error }) => (
+  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+    <label className="block text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">
+      {label}
+    </label>
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      className={`w-full px-4 py-3 rounded-lg border-2 font-bold text-gray-900 transition-all focus:outline-none ${
+        error
+          ? 'border-red-500 focus:border-red-600 bg-red-50'
+          : 'border-blue-300 focus:border-blue-500 bg-white'
+      }`}
+    >
+      {options.map(opt => (
+        <option key={typeof opt === 'string' ? opt : opt.value} value={typeof opt === 'string' ? opt : opt.value}>
+          {typeof opt === 'string' ? opt : opt.label}
+        </option>
+      ))}
+    </select>
+    {error && (
+      <motion.p
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-red-600 text-xs mt-2 font-bold tracking-tight"
+      >
+        ✗ {error}
+      </motion.p>
+    )}
+  </motion.div>
+);
+
+/**
+ * Checkbox Component
+ */
+const Checkbox = ({ name, checked, onChange, label, error }) => (
+  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+    <label className="flex items-start gap-3 cursor-pointer">
+      <motion.input
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={onChange}
+        className="w-5 h-5 rounded border-2 border-blue-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer accent-blue-600 mt-1"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      />
+      <span className={`text-sm font-bold tracking-tight ${error ? 'text-red-700' : 'text-gray-900'}`}>
+        {label}
+      </span>
+    </label>
+    {error && (
+      <motion.p
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-red-600 text-xs mt-1 font-bold ml-8 tracking-tight"
+      >
+        ✗ {error}
+      </motion.p>
+    )}
+  </motion.div>
+);
+
+/**
+ * Badge Component
+ */
+const Badge = ({ children, variant = 'default' }) => {
+  const variants = {
+    default: 'bg-blue-100 text-blue-800',
+    success: 'bg-green-100 text-green-800',
+    warning: 'bg-yellow-100 text-yellow-800',
+    danger: 'bg-red-100 text-red-800',
+  };
+  
+  return (
+    <motion.span
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      className={`px-3 py-1 rounded-full text-xs font-black tracking-wide inline-block ${variants[variant]}`}
+    >
+      {children}
+    </motion.span>
+  );
+};
+
+/**
+ * Progress Bar Component
+ */
+const ProgressBar = ({ progress, text }) => (
+  <motion.div className="space-y-2">
+    <div className="flex justify-between items-center mb-2">
+      <span className="text-sm font-bold text-gray-900 uppercase tracking-wide">Progress</span>
+      <span className="text-sm font-black text-blue-600">{text}</span>
+    </div>
+    <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden border-2 border-blue-300">
+      <motion.div
+        className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
+        initial={{ width: 0 }}
+        animate={{ width: `${progress}%` }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      />
+    </div>
+  </motion.div>
+);
+
+/**
+ * Card Component
+ */
+const Card = ({ children, className = '' }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    className={`bg-white rounded-lg border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow ${className}`}
+  >
+    {children}
+  </motion.div>
+);
+
+/**
+ * StatusBox Component
+ */
+const StatusBox = ({ type = 'success', title, children }) => {
+  const typeStyles = {
+    success: 'bg-green-50 border-green-300 text-green-900',
+    error: 'bg-red-50 border-red-300 text-red-900',
+    info: 'bg-blue-50 border-blue-300 text-blue-900',
+  };
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`rounded-lg border-2 p-6 ${typeStyles[type]}`}
+    >
+      <h3 className="font-black text-lg mb-2 tracking-tight">{title}</h3>
+      {children}
+    </motion.div>
+  );
+};
+
+/**
+ * Button Component
+ */
+const Button = ({ children, variant = 'primary', onClick, fullWidth, type = 'button', disabled, className = '' }) => {
+  const variants = {
+    primary: 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:shadow-lg font-bold disabled:opacity-50',
+    outline: 'bg-white border-2 border-blue-300 text-blue-700 hover:bg-blue-50 font-bold',
+  };
+  
+  return (
+    <motion.button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-6 py-3 rounded-lg transition-all text-sm tracking-wide uppercase ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
+      whileTap={{ scale: disabled ? 1 : 0.98 }}
+    >
+      {children}
+    </motion.button>
+  );
+};
+
+/**
+ * LoanApplication Component - CredBridge
  */
 const LoanApplication = () => {
   const banking = useContext(BankingContext);
@@ -44,12 +242,7 @@ const LoanApplication = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState({});
-
-  // Fetch data
-  const borrowers = useMemo(() => getAllBorrowers(), []);
-  const loans = useMemo(() => getAllLoans(), []);
 
   /**
    * Validate form data
@@ -57,12 +250,10 @@ const LoanApplication = () => {
   const validateForm = useCallback(() => {
     const newErrors = {};
 
-    // Personal information validation
     if (!formData.name.trim()) newErrors.name = 'Full name is required';
     if (!formData.age || formData.age < 18 || formData.age > 75) newErrors.age = 'Age must be between 18-75';
     if (!formData.mobile || formData.mobile.length !== 10) newErrors.mobile = 'Valid 10-digit mobile required';
 
-    // Financial information validation
     if (!formData.monthlyIncome || formData.monthlyIncome < 10000) {
       newErrors.monthlyIncome = 'Monthly income must be at least ₹10,000';
     }
@@ -70,13 +261,11 @@ const LoanApplication = () => {
       newErrors.loanAmount = 'Loan amount must be at least ₹10,000';
     }
 
-    // Debt-to-income ratio check
     const dti = (parseInt(formData.existingEmi || 0) / parseInt(formData.monthlyIncome || 1)) * 100;
     if (dti > 50) {
       newErrors.existingEmi = 'Debt-to-income ratio exceeds 50%. Consider reducing existing loans.';
     }
 
-    // AA Consent validation
     if (!formData.aaConsent) {
       newErrors.aaConsent = 'Account Aggregator consent is required';
     }
@@ -95,7 +284,6 @@ const LoanApplication = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
 
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -124,7 +312,6 @@ const LoanApplication = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate submission
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       const applicationData = {
@@ -192,7 +379,7 @@ const LoanApplication = () => {
     const monthlyIncome = parseInt(formData.monthlyIncome || 0);
     const existingEmi = parseInt(formData.existingEmi || 0);
     const availableIncome = monthlyIncome - existingEmi;
-    const maxEmi = Math.round(availableIncome * 0.40); // 40% of available income
+    const maxEmi = Math.round(availableIncome * 0.40);
     const maxLoan = maxEmi * parseInt(formData.tenure);
 
     return {
@@ -206,91 +393,131 @@ const LoanApplication = () => {
     };
   }, [formData.monthlyIncome, formData.existingEmi, formData.loanAmount, formData.tenure]);
 
+  // Success Screen
   if (submitted) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="max-w-4xl mx-auto space-y-8 p-6"
+      >
         <StatusBox
           type="success"
           title="✅ Application Submitted Successfully!"
         >
-          <div className="mt-4 space-y-4">
-            <p className="text-gray-700">
+          <div className="mt-4 space-y-6 font-bold text-green-900">
+            <p className="text-lg">
               Your loan application has been received and is being processed by our AI Decision Engine.
             </p>
-            <div className="bg-blue-50 p-4 rounded border border-blue-200">
-              <p className="font-semibold text-blue-900 mb-2">📊 Next Steps:</p>
-              <ol className="space-y-1 text-sm text-blue-800">
-                <li>1. Your application is queued for AI assessment</li>
-                <li>2. Multi-agent processing will begin shortly</li>
-                <li>3. You'll receive the decision within 24 hours</li>
-                <li>4. Check your email and dashboard for updates</li>
+            <div className="bg-white rounded-lg border-2 border-green-300 p-6 space-y-4">
+              <p className="font-black text-lg flex items-center gap-2">
+                <TrendingUp className="text-green-600" size={24} />
+                📊 What Happens Next:
+              </p>
+              <ol className="space-y-2 text-sm font-semibold">
+                <li className="flex items-start gap-2">
+                  <span className="font-black">1.</span>
+                  <span>Your application is queued for AI assessment</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-black">2.</span>
+                  <span>Multi-agent processing will begin shortly</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-black">3.</span>
+                  <span>You'll receive the decision within 24 hours</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-black">4.</span>
+                  <span>Check your email and dashboard for updates</span>
+                </li>
               </ol>
             </div>
             <Button
               variant="primary"
               onClick={() => window.location.href = '/decision-engine'}
               fullWidth
+              className="py-4 text-base"
             >
               View Decision Engine
             </Button>
           </div>
         </StatusBox>
-      </div>
+      </motion.div>
     );
   }
 
+  // Main Form
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-4xl mx-auto space-y-8 p-6"
+    >
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">📝 Loan Application</h2>
-        <p className="text-gray-600">Complete the form to apply for a loan</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h1 className="text-5xl font-black text-gray-900 mb-2 tracking-tighter flex items-center gap-3">
+          <CreditCard className="text-blue-600" size={40} />
+          Loan Application
+        </h1>
+        <p className="text-gray-800 font-bold">Complete the form to apply for a CredBridge loan</p>
+      </motion.div>
 
       {/* Summary Stats */}
-      {formData.monthlyIncome && (
-        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600">Monthly Income</p>
-              <p className="text-lg font-bold text-gray-800">₹{parseInt(formData.monthlyIncome).toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Loan Requested</p>
-              <p className="text-lg font-bold text-gray-800">₹{parseInt(formData.loanAmount || 0).toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Max Eligible</p>
-              <p className="text-lg font-bold text-gray-800">₹{loanEligibility.maxLoan.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Eligibility</p>
-              <Badge variant={loanEligibility.isEligible ? 'success' : 'warning'}>
-                {loanEligibility.eligibilityPercentage}%
-              </Badge>
-            </div>
-          </div>
+      <AnimatePresence>
+        {formData.monthlyIncome && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0 }}>
+                  <p className="text-xs text-gray-700 font-bold uppercase tracking-wider mb-1">Monthly Income</p>
+                  <p className="text-2xl font-black text-gray-900">₹{parseInt(formData.monthlyIncome).toLocaleString()}</p>
+                </motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                  <p className="text-xs text-gray-700 font-bold uppercase tracking-wider mb-1">Loan Requested</p>
+                  <p className="text-2xl font-black text-gray-900">₹{parseInt(formData.loanAmount || 0).toLocaleString()}</p>
+                </motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                  <p className="text-xs text-gray-700 font-bold uppercase tracking-wider mb-1">Max Eligible</p>
+                  <p className="text-2xl font-black text-gray-900">₹{loanEligibility.maxLoan.toLocaleString()}</p>
+                </motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                  <p className="text-xs text-gray-700 font-bold uppercase tracking-wider mb-1">Eligibility</p>
+                  <Badge variant={loanEligibility.isEligible ? 'success' : 'warning'}>
+                    {loanEligibility.eligibilityPercentage}%
+                  </Badge>
+                </motion.div>
+              </div>
 
-          {loanEligibility.maxEmi > 0 && (
-            <ProgressBar
-              progress={Math.min(100, loanEligibility.eligibilityPercentage)}
-              text={`Eligible EMI: ₹${loanEligibility.maxEmi}`}
-            />
-          )}
-        </Card>
-      )}
+              {loanEligibility.maxEmi > 0 && (
+                <ProgressBar
+                  progress={Math.min(100, loanEligibility.eligibilityPercentage)}
+                  text={`Max Eligible EMI: ₹${loanEligibility.maxEmi}`}
+                />
+              )}
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-8 space-y-8">
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg border-2 border-blue-200 shadow-lg p-8 space-y-10">
         
         {/* Personal Information */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
-            <CheckCircle size={24} className="text-blue-600" />
+        <motion.div className="space-y-6" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
+          <h2 className="text-2xl font-black text-gray-900 border-b-2 border-blue-200 pb-4 flex items-center gap-3 uppercase tracking-tight">
+            <User className="text-blue-600" size={28} />
             Personal Information
-          </h3>
+          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
               label="Full Name"
               name="name"
@@ -310,7 +537,7 @@ const LoanApplication = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Select
               label="Gender"
               name="gender"
@@ -334,7 +561,7 @@ const LoanApplication = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Select
               label="State"
               name="state"
@@ -355,16 +582,16 @@ const LoanApplication = () => {
               ]}
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Financial Information */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
-            <CheckCircle size={24} className="text-blue-600" />
+        <motion.div className="space-y-6 border-t-2 border-blue-200 pt-10" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
+          <h2 className="text-2xl font-black text-gray-900 pb-4 flex items-center gap-3 uppercase tracking-tight">
+            <DollarSign className="text-blue-600" size={28} />
             Financial Information
-          </h3>
+          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Select
               label="Occupation"
               name="occupation"
@@ -381,7 +608,7 @@ const LoanApplication = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
               label="Monthly Income (₹)"
               name="monthlyIncome"
@@ -400,7 +627,7 @@ const LoanApplication = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
               label="Loan Amount Requested (₹)"
               name="loanAmount"
@@ -419,7 +646,7 @@ const LoanApplication = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
               label="Existing Loans"
               name="existingLoans"
@@ -436,16 +663,16 @@ const LoanApplication = () => {
               error={errors.existingEmi}
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Alternative Data */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
-            <CheckCircle size={24} className="text-blue-600" />
+        <motion.div className="space-y-6 border-t-2 border-blue-200 pt-10" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
+          <h2 className="text-2xl font-black text-gray-900 pb-4 flex items-center gap-3 uppercase tracking-tight">
+            <CreditCard className="text-blue-600" size={28} />
             Alternative Data & Credits
-          </h3>
+          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
               label="CIBIL Score (leave blank if none)"
               name="cibilScore"
@@ -463,7 +690,7 @@ const LoanApplication = () => {
             />
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Checkbox
               name="fpoMember"
               checked={formData.fpoMember}
@@ -477,15 +704,19 @@ const LoanApplication = () => {
               label="Is your business registered?"
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Account Aggregator Consent */}
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg space-y-4">
-          <h4 className="font-bold text-blue-900 flex items-center gap-2">
-            <AlertCircle size={20} />
+        <motion.div
+          className="bg-gradient-to-r from-blue-50 to-cyan-50 border-l-4 border-blue-500 p-8 rounded-lg space-y-4"
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+        >
+          <h3 className="font-black text-blue-900 flex items-center gap-2 uppercase tracking-tight text-lg">
+            <Shield size={24} className="text-blue-600" />
             📊 Account Aggregator Integration
-          </h4>
-          <p className="text-blue-800 text-sm">
+          </h3>
+          <p className="text-blue-900 font-bold">
             We use Account Aggregator to securely fetch your financial data with your consent. This helps us assess your creditworthiness better and provide you with the best rates.
           </p>
           <Checkbox
@@ -495,15 +726,23 @@ const LoanApplication = () => {
             label="I consent to fetch my financial data via Account Aggregator"
             error={errors.aaConsent}
           />
-        </div>
+        </motion.div>
 
         {/* Submit Progress */}
-        {isSubmitting && (
-          <ProgressBar 
-            progress={100} 
-            text="Submitting your application..." 
-          />
-        )}
+        <AnimatePresence>
+          {isSubmitting && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <ProgressBar 
+                progress={100} 
+                text="Submitting your application..." 
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Submit Button */}
         <Button
@@ -511,13 +750,13 @@ const LoanApplication = () => {
           variant="primary"
           fullWidth
           disabled={isSubmitting}
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 py-4 text-base"
         >
-          <Send size={20} />
+          <Send size={24} />
           {isSubmitting ? 'Submitting...' : 'Submit Loan Application'}
         </Button>
       </form>
-    </div>
+    </motion.div>
   );
 };
 

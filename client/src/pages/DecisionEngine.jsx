@@ -1,19 +1,153 @@
 import React, { useState, useContext, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BankingContext } from '../context/Index';
-import { Card, Button, ProgressBar, StatusBox, Badge, Alert } from '../components/common/Index';
-import { CheckCircle, XCircle, AlertCircle, Brain, Zap } from 'lucide-react';
-
-// Import data functions
-import {
-  getAllLoans,
-  getAllBorrowers,
-  getHighRiskLoans,
-  getOverdueLoans,
-} from '../data/Index';
+import { 
+  CheckCircle, XCircle, AlertCircle, Brain, Zap, 
+  TrendingUp, BarChart3, PieChart as PieChartIcon,
+  Award, Shield, Cpu, Users  // ✅ ADD Users HERE
+} from 'lucide-react';
+import { getAllLoans, getAllBorrowers, getHighRiskLoans, getOverdueLoans } from '../data/Index';
 
 /**
- * DecisionEngine Component
- * Multi-agent AI system for credit assessment
+ * Card Component
+ */
+const Card = ({ children, className = '', title = null }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    className={`bg-white rounded-lg border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow p-6 ${className}`}
+  >
+    {title && <h3 className="text-lg font-bold text-gray-900 mb-6 tracking-tight uppercase">{title}</h3>}
+    {children}
+  </motion.div>
+);
+
+/**
+ * Badge Component
+ */
+const Badge = ({ children, variant = 'default' }) => {
+  const variants = {
+    default: 'bg-blue-100 text-blue-800',
+    success: 'bg-green-100 text-green-800',
+    warning: 'bg-yellow-100 text-yellow-800',
+    danger: 'bg-red-100 text-red-800',
+    primary: 'bg-cyan-100 text-cyan-800',
+  };
+  
+  return (
+    <motion.span
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      className={`px-3 py-1 rounded-full text-xs font-black tracking-wide inline-block ${variants[variant]}`}
+    >
+      {children}
+    </motion.span>
+  );
+};
+
+/**
+ * Progress Bar Component
+ */
+const ProgressBar = ({ progress, text }) => (
+  <motion.div className="space-y-2">
+    <div className="flex justify-between items-center mb-2">
+      <span className="text-sm font-bold text-gray-900 uppercase tracking-wide">Progress</span>
+      <span className="text-sm font-black text-blue-600">{text}</span>
+    </div>
+    <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden border-2 border-blue-300">
+      <motion.div
+        className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
+        initial={{ width: 0 }}
+        animate={{ width: `${progress}%` }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      />
+    </div>
+  </motion.div>
+);
+
+/**
+ * StatusBox Component
+ */
+const StatusBox = ({ type = 'success', title, children }) => {
+  const typeStyles = {
+    success: 'bg-green-50 border-green-300 text-green-900',
+    error: 'bg-red-50 border-red-300 text-red-900',
+    warning: 'bg-yellow-50 border-yellow-300 text-yellow-900',
+  };
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`rounded-lg border-2 p-8 ${typeStyles[type]}`}
+    >
+      <h3 className="font-black text-2xl mb-4 tracking-tighter">{title}</h3>
+      {children}
+    </motion.div>
+  );
+};
+
+/**
+ * Alert Component
+ */
+const Alert = ({ type = 'info', message, dismissible = true }) => {
+  const [show, setShow] = useState(true);
+  
+  if (!show) return null;
+  
+  const typeStyles = {
+    info: 'bg-blue-50 border-blue-300 text-blue-900',
+    success: 'bg-green-50 border-green-300 text-green-900',
+    warning: 'bg-yellow-50 border-yellow-300 text-yellow-900',
+    error: 'bg-red-50 border-red-300 text-red-900',
+  };
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className={`rounded-lg border-2 p-4 flex items-start gap-3 ${typeStyles[type]}`}
+    >
+      <AlertCircle size={20} className="flex-shrink-0 mt-0.5 font-bold" />
+      <p className="font-bold text-sm flex-1 tracking-tight">{message}</p>
+      {dismissible && (
+        <button
+          onClick={() => setShow(false)}
+          className="text-lg font-black hover:opacity-70 flex-shrink-0"
+        >
+          ×
+        </button>
+      )}
+    </motion.div>
+  );
+};
+
+/**
+ * Button Component
+ */
+const Button = ({ children, variant = 'primary', onClick, fullWidth, disabled, className = '' }) => {
+  const variants = {
+    primary: 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:shadow-lg font-bold disabled:opacity-50',
+    outline: 'bg-white border-2 border-blue-300 text-blue-700 hover:bg-blue-50 font-bold',
+  };
+  
+  return (
+    <motion.button
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-6 py-3 rounded-lg transition-all text-sm tracking-wide uppercase ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
+      whileTap={{ scale: disabled ? 1 : 0.98 }}
+    >
+      {children}
+    </motion.button>
+  );
+};
+
+/**
+ * DecisionEngine Component - CredBridge
  */
 const DecisionEngine = () => {
   const banking = useContext(BankingContext);
@@ -26,12 +160,36 @@ const DecisionEngine = () => {
 
   // Multi-agent workflow
   const agents = [
-    { name: 'Data Collection Agent', description: 'Collecting borrower & financial data...' },
-    { name: 'Feature Engineering Agent', description: 'Engineering ML features...' },
-    { name: 'Alternative Credit Score Agent', description: 'Calculating alternative credit score...' },
-    { name: 'Risk Assessment Agent', description: 'Assessing portfolio risk levels...' },
-    { name: 'Compliance Agent', description: 'Checking RBI/regulatory compliance...' },
-    { name: 'Decision Engine Agent', description: 'Making final lending decision...' },
+    { 
+      name: 'Data Collection Agent', 
+      description: 'Collecting borrower & financial data...',
+      icon: Cpu
+    },
+    { 
+      name: 'Feature Engineering Agent', 
+      description: 'Engineering ML features from alternative data...',
+      icon: BarChart3
+    },
+    { 
+      name: 'Alternative Credit Score Agent', 
+      description: 'Calculating AI-powered credit score...',
+      icon: TrendingUp
+    },
+    { 
+      name: 'Risk Assessment Agent', 
+      description: 'Assessing portfolio risk levels...',
+      icon: Shield
+    },
+    { 
+      name: 'Compliance Agent', 
+      description: 'Checking RBI/regulatory compliance...',
+      icon: Award
+    },
+    { 
+      name: 'Decision Engine Agent', 
+      description: 'Making final lending decision...',
+      icon: Brain
+    },
   ];
 
   // Fetch data
@@ -41,23 +199,17 @@ const DecisionEngine = () => {
   const overdueLoans = useMemo(() => getOverdueLoans(), []);
 
   /**
-   * Calculate credit score based on actual data
+   * Calculate credit score
    */
   const calculateCreditScore = useCallback((borrowerId) => {
     const borrower = allBorrowers.find(b => b.id === borrowerId);
     if (!borrower) return Math.floor(Math.random() * 200 + 600);
 
-    let score = 750; // Base score
-
-    // Adjust based on segment
+    let score = 750;
     if (borrower.segment === 'Agriculture') score += 50;
     if (borrower.segment === 'Small Business') score += 40;
-
-    // Adjust based on location
     if (borrower.locationTier === '1') score -= 10;
     if (borrower.locationTier === '4') score += 30;
-
-    // Add variance
     score += Math.floor(Math.random() * 100 - 50);
 
     return Math.min(900, Math.max(300, score));
@@ -66,16 +218,16 @@ const DecisionEngine = () => {
   /**
    * Assess risk level
    */
-  const assessRiskLevel = useCallback((score, borrowerId) => {
+  const assessRiskLevel = useCallback((score) => {
     if (score >= 750) return 'Low';
     if (score >= 650) return 'Medium';
     return 'High';
   }, []);
 
   /**
-   * Generate decision based on multi-factor analysis
+   * Generate decision
    */
-  const generateDecision = useCallback((creditScore, riskLevel, borrowerId) => {
+  const generateDecision = useCallback((creditScore, riskLevel) => {
     const random = Math.random();
 
     let outcome;
@@ -112,13 +264,11 @@ const DecisionEngine = () => {
     setDecision(null);
 
     try {
-      // Simulate multi-agent processing
       for (let i = 0; i < agents.length; i++) {
         setCurrentStep(i);
         await new Promise(resolve => setTimeout(resolve, 1200));
       }
 
-      // Select random borrower
       const randomBorrower = allBorrowers[Math.floor(Math.random() * allBorrowers.length)];
       if (!randomBorrower) {
         setIsProcessing(false);
@@ -127,12 +277,10 @@ const DecisionEngine = () => {
 
       setSelectedLoanId(randomBorrower.id);
 
-      // Calculate metrics
       const creditScore = calculateCreditScore(randomBorrower.id);
-      const riskLevel = assessRiskLevel(creditScore, randomBorrower.id);
-      const { outcome, reason } = generateDecision(creditScore, riskLevel, randomBorrower.id);
+      const riskLevel = assessRiskLevel(creditScore);
+      const { outcome, reason } = generateDecision(creditScore, riskLevel);
 
-      // Determine loan parameters based on outcome
       const baseAmount = 50000;
       const loanAmount = outcome === 'approved' 
         ? baseAmount + Math.floor(Math.random() * 100000)
@@ -166,7 +314,6 @@ const DecisionEngine = () => {
 
       setDecision(decisionData);
 
-      // Notify context
       if (banking?.addNotification) {
         banking.addNotification({
           type: outcome === 'approved' ? 'success' : outcome === 'declined' ? 'error' : 'warning',
@@ -193,231 +340,375 @@ const DecisionEngine = () => {
   }, [allBorrowers, calculateCreditScore, assessRiskLevel, generateDecision, banking]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-5xl mx-auto space-y-8 p-6"
+    >
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-          <Brain className="text-purple-600" size={32} />
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h1 className="text-5xl font-black text-gray-900 mb-2 tracking-tighter flex items-center gap-3">
+          <Brain className="text-blue-600" size={40} />
           🧠 AI Decision Engine
-        </h2>
-        <p className="text-gray-600">Multi-agent AI system for credit assessment and lending decisions</p>
-      </div>
+        </h1>
+        <p className="text-gray-800 font-bold">Multi-agent AI system for intelligent credit assessment and lending decisions</p>
+      </motion.div>
 
       {/* Data Summary */}
-      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-sm text-gray-600">Total Loans in System</p>
-            <p className="text-2xl font-bold text-gray-800">{allLoans.length}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Active Borrowers</p>
-            <p className="text-2xl font-bold text-gray-800">{allBorrowers.length}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">High Risk Loans</p>
-            <p className="text-2xl font-bold text-red-600">{highRiskLoans.length}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Overdue Loans</p>
-            <p className="text-2xl font-bold text-yellow-600">{overdueLoans.length}</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Initial State - Start Processing */}
-      {!isProcessing && !decision && (
-        <Card className="text-center p-8">
-          <Zap className="text-purple-600 mx-auto mb-4" size={48} />
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Run Credit Assessment</h3>
-          <p className="text-gray-600 mb-6">
-            Click below to process a loan application through our AI-powered decision engine. The system will:
-          </p>
-          <ul className="text-gray-600 text-sm mb-6 space-y-2">
-            <li>✓ Collect borrower and financial data</li>
-            <li>✓ Calculate alternative credit scores</li>
-            <li>✓ Assess portfolio risk levels</li>
-            <li>✓ Verify regulatory compliance</li>
-            <li>✓ Generate lending decision</li>
-          </ul>
-          <Button variant="primary" onClick={runDecisionEngine} className="flex items-center gap-2 mx-auto">
-            <Zap size={18} />
-            Start Decision Engine
-          </Button>
-        </Card>
-      )}
-
-      {/* Processing State */}
-      {isProcessing && (
-        <Card className="p-8 space-y-6">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Processing Application...</h3>
-
-          <div className="space-y-4">
-            {agents.map((agent, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white transition-all ${
-                      index < currentStep ? 'bg-green-500' : 
-                      index === currentStep ? 'bg-blue-500 animate-pulse' : 
-                      'bg-gray-300'
-                    }`}>
-                      {index < currentStep ? (
-                        <CheckCircle size={20} />
-                      ) : (
-                        <span>{index + 1}</span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-800">{agent.name}</p>
-                      <p className="text-sm text-gray-500">{agent.description}</p>
-                    </div>
-                  </div>
-                  {index === currentStep && (
-                    <Badge variant="primary">Processing...</Badge>
-                  )}
-                  {index < currentStep && (
-                    <Badge variant="success">Complete</Badge>
-                  )}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Card className="bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 border-2 border-blue-300">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { label: 'Total Loans', value: allLoans.length, Icon: BarChart3 },
+              { label: 'Active Borrowers', value: allBorrowers.length, Icon: Users },
+              { label: 'High Risk Loans', value: highRiskLoans.length, Icon: AlertCircle, color: 'text-red-600' },
+              { label: 'Overdue Loans', value: overdueLoans.length, Icon: AlertCircle, color: 'text-yellow-600' },
+            ].map((item, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.1 }}
+                className="text-center"
+              >
+                <div className="flex justify-center mb-2">
+                  <item.Icon className={item.color || 'text-blue-600'} size={24} />
                 </div>
-              </div>
+                <p className="text-xs text-gray-700 font-bold uppercase tracking-wider mb-2">
+                  {item.label}
+                </p>
+                <p className={`text-3xl font-black tracking-tight ${item.color || 'text-blue-600'}`}>
+                  {item.value}
+                </p>
+              </motion.div>
             ))}
           </div>
-
-          <ProgressBar 
-            progress={((currentStep + 1) / agents.length) * 100} 
-            text={`Step ${currentStep + 1} of ${agents.length}`}
-          />
         </Card>
-      )}
+      </motion.div>
+
+      {/* Initial State - Start Processing */}
+      <AnimatePresence mode="wait">
+        {!isProcessing && !decision && (
+          <motion.div
+            key="initial"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Card className="text-center p-12">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+              >
+                <Zap className="text-blue-600 mx-auto mb-6" size={56} />
+              </motion.div>
+              <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight uppercase">
+                Run AI Credit Assessment
+              </h2>
+              <p className="text-gray-800 font-bold mb-8 max-w-xl mx-auto leading-relaxed">
+                Analyze a loan application through our intelligent multi-agent decision engine.
+              </p>
+              <ul className="text-gray-800 text-sm font-bold mb-10 space-y-3 max-w-lg mx-auto text-left">
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                  <span>Collect borrower and financial data</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                  <span>Calculate alternative credit scores</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                  <span>Assess portfolio risk levels</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                  <span>Verify regulatory compliance</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                  <span>Generate lending decision</span>
+                </li>
+              </ul>
+              <Button 
+                variant="primary" 
+                onClick={runDecisionEngine} 
+                className="flex items-center justify-center gap-2 mx-auto py-4 px-8 text-base"
+              >
+                <Zap size={24} />
+                Start Decision Engine
+              </Button>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Processing State */}
+      <AnimatePresence mode="wait">
+        {isProcessing && (
+          <motion.div
+            key="processing"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Card className="p-8 space-y-8">
+              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
+                Processing Application...
+              </h2>
+
+              <div className="space-y-6">
+                {agents.map((agent, index) => {
+                  const Icon = agent.icon;
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center gap-4">
+                        <motion.div
+                          className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-bold text-white ${
+                            index < currentStep 
+                              ? 'bg-green-500 border-green-600' 
+                              : index === currentStep 
+                              ? 'bg-blue-500 border-blue-600'
+                              : 'bg-gray-300 border-gray-400'
+                          }`}
+                          animate={index === currentStep ? { scale: [1, 1.1, 1] } : {}}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          {index < currentStep ? (
+                            <CheckCircle size={24} />
+                          ) : (
+                            <Icon size={24} />
+                          )}
+                        </motion.div>
+
+                        <div className="flex-1">
+                          <p className={`font-black ${
+                            index < currentStep
+                              ? 'text-green-900'
+                              : index === currentStep
+                              ? 'text-blue-900'
+                              : 'text-gray-600'
+                          } uppercase tracking-tight text-lg`}>
+                            {agent.name}
+                          </p>
+                          <p className="text-sm text-gray-700 font-bold mt-1">
+                            {agent.description}
+                          </p>
+                        </div>
+
+                        {index === currentStep && (
+                          <Badge variant="primary">In Progress</Badge>
+                        )}
+                        {index < currentStep && (
+                          <Badge variant="success">Complete</Badge>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              <ProgressBar 
+                progress={((currentStep + 1) / agents.length) * 100} 
+                text={`Step ${currentStep + 1} of ${agents.length}`}
+              />
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Decision Result */}
-      {decision && (
-        <div className="space-y-6">
-          {/* Approved Decision */}
-          {decision.outcome === 'approved' && (
-            <StatusBox
-              type="success"
-              title="🎉 Loan Approved!"
-            >
-              <div className="space-y-4 mt-4">
-                <Alert
-                  type="success"
-                  message={`Application approved for ${decision.borrowerName}`}
-                  dismissible={false}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="p-4 bg-green-50 rounded-lg">
-                    <p className="text-gray-600">Approved Amount</p>
-                    <p className="text-2xl font-bold text-green-900">₹{decision.loanAmount.toLocaleString()}</p>
-                  </div>
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <p className="text-gray-600">Interest Rate</p>
-                    <p className="text-2xl font-bold text-blue-900">{decision.interestRate}% p.a.</p>
-                  </div>
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <p className="text-gray-600">Tenure</p>
-                    <p className="text-2xl font-bold text-purple-900">{decision.tenure} months</p>
-                  </div>
-                  <div className="p-4 bg-orange-50 rounded-lg">
-                    <p className="text-gray-600">Credit Score</p>
-                    <p className="text-2xl font-bold text-orange-900">{decision.creditScore}</p>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm"><strong>Reason:</strong> {decision.reason}</p>
-                  <p className="text-xs text-gray-600 mt-2">Risk Level: <Badge variant="success">{decision.riskLevel}</Badge></p>
-                </div>
-              </div>
-            </StatusBox>
-          )}
+      <AnimatePresence mode="wait">
+        {decision && (
+          <motion.div
+            key="decision"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-8"
+          >
+            {/* Approved */}
+            {decision.outcome === 'approved' && (
+              <StatusBox
+                type="success"
+                title="✅ Loan Approved!"
+              >
+                <div className="mt-6 space-y-6 font-bold text-green-900">
+                  <Alert
+                    type="success"
+                    message={`Application approved for ${decision.borrowerName}`}
+                    dismissible={false}
+                  />
 
-          {/* Declined Decision */}
-          {decision.outcome === 'declined' && (
-            <StatusBox
-              type="error"
-              title="❌ Loan Declined"
-            >
-              <div className="space-y-4 mt-4">
-                <Alert
-                  type="error"
-                  message={`Application declined for ${decision.borrowerName}`}
-                  dismissible={false}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="p-4 bg-red-50 rounded-lg">
-                    <p className="text-gray-600">Credit Score</p>
-                    <p className="text-2xl font-bold text-red-900">{decision.creditScore}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[
+                      { label: 'Approved Amount', value: `₹${decision.loanAmount.toLocaleString()}`, color: 'bg-green-50 border-green-300' },
+                      { label: 'Interest Rate', value: `${decision.interestRate}% p.a.`, color: 'bg-blue-50 border-blue-300' },
+                      { label: 'Tenure', value: `${decision.tenure} months`, color: 'bg-cyan-50 border-cyan-300' },
+                      { label: 'Credit Score', value: decision.creditScore, color: 'bg-purple-50 border-purple-300' },
+                    ].map((item, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className={`p-6 rounded-lg border-2 ${item.color}`}
+                      >
+                        <p className="text-xs text-gray-700 font-black uppercase tracking-wider mb-2">
+                          {item.label}
+                        </p>
+                        <p className="text-2xl font-black text-gray-900">
+                          {item.value}
+                        </p>
+                      </motion.div>
+                    ))}
                   </div>
-                  <div className="p-4 bg-red-50 rounded-lg">
-                    <p className="text-gray-600">Risk Level</p>
-                    <p className="text-2xl font-bold text-red-900">{decision.riskLevel}</p>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm"><strong>Reason:</strong> {decision.reason}</p>
-                  <p className="text-xs text-gray-600 mt-2">Please improve your credit profile and reapply after 3 months.</p>
-                </div>
-              </div>
-            </StatusBox>
-          )}
 
-          {/* Review Decision */}
-          {decision.outcome === 'review' && (
-            <StatusBox
-              type="warning"
-              title="⚠️ Manual Review Required"
-            >
-              <div className="space-y-4 mt-4">
-                <Alert
-                  type="warning"
-                  message={`Application under review for ${decision.borrowerName}`}
-                  dismissible={false}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="p-4 bg-yellow-50 rounded-lg">
-                    <p className="text-gray-600">Credit Score</p>
-                    <p className="text-2xl font-bold text-yellow-900">{decision.creditScore}</p>
-                  </div>
-                  <div className="p-4 bg-yellow-50 rounded-lg">
-                    <p className="text-gray-600">Risk Level</p>
-                    <p className="text-2xl font-bold text-yellow-900">{decision.riskLevel}</p>
+                  <div className="bg-white rounded-lg border-2 border-green-300 p-6">
+                    <p className="font-black text-lg mb-2 uppercase tracking-tight">✓ Approval Details</p>
+                    <p className="mb-3">{decision.reason}</p>
+                    <Badge variant="success">Risk Level: {decision.riskLevel}</Badge>
                   </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm"><strong>Reason:</strong> {decision.reason}</p>
-                  <p className="text-xs text-gray-600 mt-2">Our team will contact you within 24-48 hours for additional verification.</p>
-                </div>
-              </div>
-            </StatusBox>
-          )}
+              </StatusBox>
+            )}
 
-          {/* Agent Steps Summary */}
-          <Card title="📋 Agent Processing Steps">
-            <div className="space-y-3">
-              {decision.agentSteps.map((step, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="text-green-600" size={18} />
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{step.name}</p>
-                      <p className="text-xs text-gray-500">{step.completedAt}</p>
+            {/* Declined */}
+            {decision.outcome === 'declined' && (
+              <StatusBox
+                type="error"
+                title="❌ Loan Declined"
+              >
+                <div className="mt-6 space-y-6 font-bold text-red-900">
+                  <Alert
+                    type="error"
+                    message={`Application declined for ${decision.borrowerName}`}
+                    dismissible={false}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-red-50 rounded-lg border-2 border-red-300">
+                      <p className="text-xs text-gray-700 font-black uppercase tracking-wider mb-2">
+                        Credit Score
+                      </p>
+                      <p className="text-2xl font-black text-red-900">
+                        {decision.creditScore}
+                      </p>
+                    </div>
+                    <div className="p-6 bg-red-50 rounded-lg border-2 border-red-300">
+                      <p className="text-xs text-gray-700 font-black uppercase tracking-wider mb-2">
+                        Risk Level
+                      </p>
+                      <p className="text-2xl font-black text-red-900">
+                        {decision.riskLevel}
+                      </p>
                     </div>
                   </div>
-                  <Badge variant="success">Complete</Badge>
-                </div>
-              ))}
-            </div>
-          </Card>
 
-          {/* Action Buttons */}
-          <Button variant="primary" onClick={runDecisionEngine} fullWidth className="flex items-center justify-center gap-2">
-            <Zap size={18} />
-            Process Another Application
-          </Button>
-        </div>
-      )}
-    </div>
+                  <div className="bg-white rounded-lg border-2 border-red-300 p-6">
+                    <p className="font-black text-lg mb-2 uppercase tracking-tight">✗ Decline Reason</p>
+                    <p className="mb-4">{decision.reason}</p>
+                    <p className="text-sm">Please improve your credit profile and reapply after 3 months.</p>
+                  </div>
+                </div>
+              </StatusBox>
+            )}
+
+            {/* Review */}
+            {decision.outcome === 'review' && (
+              <StatusBox
+                type="warning"
+                title="⚠️ Manual Review Required"
+              >
+                <div className="mt-6 space-y-6 font-bold text-yellow-900">
+                  <Alert
+                    type="warning"
+                    message={`Application under review for ${decision.borrowerName}`}
+                    dismissible={false}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-yellow-50 rounded-lg border-2 border-yellow-300">
+                      <p className="text-xs text-gray-700 font-black uppercase tracking-wider mb-2">
+                        Credit Score
+                      </p>
+                      <p className="text-2xl font-black text-yellow-900">
+                        {decision.creditScore}
+                      </p>
+                    </div>
+                    <div className="p-6 bg-yellow-50 rounded-lg border-2 border-yellow-300">
+                      <p className="text-xs text-gray-700 font-black uppercase tracking-wider mb-2">
+                        Risk Level
+                      </p>
+                      <p className="text-2xl font-black text-yellow-900">
+                        {decision.riskLevel}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg border-2 border-yellow-300 p-6">
+                    <p className="font-black text-lg mb-2 uppercase tracking-tight">🔍 Review Details</p>
+                    <p className="mb-4">{decision.reason}</p>
+                    <p className="text-sm">Our team will contact you within 24-48 hours for additional verification.</p>
+                  </div>
+                </div>
+              </StatusBox>
+            )}
+
+            {/* Agent Steps */}
+            <Card title="📋 Agent Processing Steps">
+              <div className="space-y-4">
+                {decision.agentSteps.map((step, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-2 border-blue-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 tracking-tight">
+                          {step.name}
+                        </p>
+                        <p className="text-xs text-gray-600 font-medium">
+                          {step.completedAt}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="success">Complete</Badge>
+                  </motion.div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Action Button */}
+            <Button 
+              variant="primary" 
+              onClick={runDecisionEngine} 
+              fullWidth 
+              className="flex items-center justify-center gap-2 py-4 text-base"
+            >
+              <Zap size={24} />
+              Process Another Application
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

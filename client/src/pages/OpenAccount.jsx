@@ -1,15 +1,216 @@
 import React, { useState, useContext, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BankingContext } from '../context/Index';
-import { StatusBox, Card, Button, Input, Checkbox, Alert, Badge, ProgressBar } from '../components/common/Index';
-import { CheckCircle, AlertCircle, Loader, FileCheck, CreditCard, DollarSign } from 'lucide-react';
+import { 
+  CheckCircle, AlertCircle, Loader, FileCheck, CreditCard, 
+  DollarSign, Eye, EyeOff, Copy, Download, ArrowRight
+} from 'lucide-react';
 
 // Import data functions
-import {
-  getAllBorrowers,
-} from '../data/Index';
+import { getAllBorrowers } from '../data/Index';
 
 /**
- * OpenAccount Component
+ * Reusable Input Component
+ */
+const Input = ({ label, name, value, onChange, error, type = 'text', placeholder, required }) => (
+  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+    <label className="block text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">
+      {label}
+      {required && <span className="text-red-600 ml-1">*</span>}
+    </label>
+    <input
+      type={type}
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={`w-full px-4 py-3 rounded-lg border-2 font-semibold text-gray-900 placeholder-gray-500 transition-all focus:outline-none ${
+        error
+          ? 'border-red-500 focus:border-red-600 bg-red-50'
+          : 'border-blue-300 focus:border-blue-500 bg-white'
+      }`}
+    />
+    {error && (
+      <motion.p
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-red-600 text-xs mt-2 font-bold tracking-tight"
+      >
+        ✗ {error}
+      </motion.p>
+    )}
+  </motion.div>
+);
+
+/**
+ * Reusable Checkbox Component
+ */
+const Checkbox = ({ name, checked, onChange, label, error }) => (
+  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+    <label className="flex items-start gap-3 cursor-pointer">
+      <motion.input
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={onChange}
+        className="w-5 h-5 rounded border-2 border-blue-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer accent-blue-600 mt-1"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      />
+      <span className={`text-sm font-bold tracking-tight ${error ? 'text-red-700' : 'text-gray-900'}`}>
+        {label}
+      </span>
+    </label>
+    {error && (
+      <motion.p
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-red-600 text-xs mt-1 font-bold ml-8 tracking-tight"
+      >
+        ✗ {error}
+      </motion.p>
+    )}
+  </motion.div>
+);
+
+/**
+ * Alert Component
+ */
+const Alert = ({ type = 'info', message, dismissible = true }) => {
+  const [show, setShow] = useState(true);
+  
+  if (!show) return null;
+  
+  const typeStyles = {
+    info: 'bg-blue-50 border-blue-300 text-blue-900',
+    success: 'bg-green-50 border-green-300 text-green-900',
+    warning: 'bg-yellow-50 border-yellow-300 text-yellow-900',
+    error: 'bg-red-50 border-red-300 text-red-900',
+  };
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className={`rounded-lg border-2 p-4 flex items-start gap-3 ${typeStyles[type]}`}
+    >
+      <AlertCircle size={20} className="flex-shrink-0 mt-0.5 font-bold" />
+      <p className="font-bold text-sm flex-1 tracking-tight">{message}</p>
+      {dismissible && (
+        <button
+          onClick={() => setShow(false)}
+          className="text-lg font-black hover:opacity-70 flex-shrink-0"
+        >
+          ×
+        </button>
+      )}
+    </motion.div>
+  );
+};
+
+/**
+ * Card Component
+ */
+const Card = ({ children, className = '' }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    className={`bg-white rounded-lg border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow ${className}`}
+  >
+    {children}
+  </motion.div>
+);
+
+/**
+ * Badge Component
+ */
+const Badge = ({ children, variant = 'default' }) => {
+  const variants = {
+    default: 'bg-blue-100 text-blue-800',
+    success: 'bg-green-100 text-green-800',
+    warning: 'bg-yellow-100 text-yellow-800',
+    primary: 'bg-cyan-100 text-cyan-800',
+  };
+  
+  return (
+    <motion.span
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      className={`px-3 py-1 rounded-full text-xs font-black tracking-wide inline-block ${variants[variant]}`}
+    >
+      {children}
+    </motion.span>
+  );
+};
+
+/**
+ * Progress Bar Component
+ */
+const ProgressBar = ({ progress, text }) => (
+  <motion.div className="space-y-2">
+    <div className="flex justify-between items-center mb-2">
+      <span className="text-sm font-bold text-gray-900 uppercase tracking-wide">Progress</span>
+      <span className="text-sm font-black text-blue-600">{text}</span>
+    </div>
+    <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden border-2 border-blue-300">
+      <motion.div
+        className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
+        initial={{ width: 0 }}
+        animate={{ width: `${progress}%` }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      />
+    </div>
+  </motion.div>
+);
+
+/**
+ * StatusBox Component
+ */
+const StatusBox = ({ type = 'success', title, children }) => {
+  const typeStyles = {
+    success: 'bg-green-50 border-green-300 text-green-900',
+    error: 'bg-red-50 border-red-300 text-red-900',
+    info: 'bg-blue-50 border-blue-300 text-blue-900',
+  };
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`rounded-lg border-2 p-6 ${typeStyles[type]}`}
+    >
+      <h3 className="font-black text-lg mb-2 tracking-tight">{title}</h3>
+      {children}
+    </motion.div>
+  );
+};
+
+/**
+ * Button Component
+ */
+const Button = ({ children, variant = 'primary', onClick, fullWidth, type = 'button', className = '' }) => {
+  const variants = {
+    primary: 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:shadow-lg font-bold',
+    outline: 'bg-white border-2 border-blue-300 text-blue-700 hover:bg-blue-50 font-bold',
+  };
+  
+  return (
+    <motion.button
+      type={type}
+      onClick={onClick}
+      className={`px-6 py-3 rounded-lg transition-all text-sm tracking-wide uppercase ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      {children}
+    </motion.button>
+  );
+};
+
+/**
+ * OpenAccount Component - CredBridge
  * Complete digital bank account opening with V-CIP
  */
 const OpenAccount = () => {
@@ -33,10 +234,7 @@ const OpenAccount = () => {
   const [accountDetails, setAccountDetails] = useState(null);
   const [errors, setErrors] = useState({});
 
-  // Fetch data
-  const borrowers = useMemo(() => getAllBorrowers(), []);
-
-  // V-CIP Process Steps with realistic delays
+  // V-CIP Process Steps
   const vcipSteps = [
     {
       text: 'Embedding BaaS SDK...',
@@ -147,13 +345,13 @@ const OpenAccount = () => {
 
       const newAccountDetails = {
         accountNumber: accountNumber.toString(),
-        ifscCode: 'EQUIT001001',
-        bankName: 'Partner Bank (via BaaS)',
+        ifscCode: 'CBID001001',
+        bankName: 'CredBridge Partner Bank',
         customerId,
         accountType: 'Savings Account',
         openingDate: new Date().toLocaleDateString(),
         status: 'Active',
-        coreId: `CORE${customerId}`,
+        coreId: `CRED${customerId}`,
         depositInsuranceLimit: 500000,
       };
 
@@ -210,344 +408,370 @@ const OpenAccount = () => {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-4xl mx-auto space-y-6 p-6"
+    >
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-          🏦 Open Your First Bank Account
-        </h2>
-        <p className="text-gray-600">
-          We've partnered with an RBI-approved bank to offer you a{' '}
-          <strong>100% digital, zero-balance account</strong> in under 5 minutes.
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h1 className="text-5xl font-black text-gray-900 mb-2 tracking-tighter flex items-center gap-3">
+          <CreditCard className="text-blue-600" size={40} />
+          Open Your Bank Account
+        </h1>
+        <p className="text-gray-800 font-bold">
+          Get a <span className="text-blue-600">100% digital, zero-balance account</span> in under 5 minutes with CredBridge.
         </p>
-      </div>
+      </motion.div>
 
       {/* Info Banner */}
-      {stage === 'form' && (
-        <Alert
-          type="info"
-          message="All you need is your PAN Card, Aadhaar Card, and a Mobile Number linked to your Aadhaar."
-          dismissible={false}
-        />
-      )}
+      <AnimatePresence>
+        {stage === 'form' && (
+          <Alert
+            type="info"
+            message="📋 All you need: PAN Card, Aadhaar Card, and Mobile Number linked to your Aadhaar."
+            dismissible={false}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Stage 1: Form */}
-      {stage === 'form' && (
-        <Card className="p-8">
-          <h3 className="text-xl font-semibold text-gray-800 mb-6">Account Opening Details</h3>
+      <AnimatePresence mode="wait">
+        {stage === 'form' && (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Card className="p-8">
+              <h2 className="text-2xl font-black text-gray-900 mb-8 uppercase tracking-tight">
+                Account Opening Details
+              </h2>
 
-          <form onSubmit={handleFormSubmit} className="space-y-6">
-            {/* Personal Information */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-gray-700">Personal Information</h4>
+              <form onSubmit={handleFormSubmit} className="space-y-8">
+                {/* Personal Information */}
+                <motion.div className="space-y-6">
+                  <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Personal Information</h3>
 
-              <Input
-                label="Full Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                error={errors.name}
-                required
-              />
+                  <Input
+                    label="Full Name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    error={errors.name}
+                    required
+                  />
 
-              <Input
-                label="Email Address"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                error={errors.email}
-                required
-              />
+                  <Input
+                    label="Email Address"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    error={errors.email}
+                    required
+                  />
 
-              <Input
-                label="Mobile Number (10-digit)"
-                name="mobile"
-                type="tel"
-                value={formData.mobile}
-                onChange={handleChange}
-                error={errors.mobile}
-                placeholder="9876543210"
-                required
-              />
-            </div>
+                  <Input
+                    label="Mobile Number (10-digit)"
+                    name="mobile"
+                    type="tel"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    error={errors.mobile}
+                    placeholder="9876543210"
+                    required
+                  />
+                </motion.div>
 
-            {/* Document Information */}
-            <div className="space-y-4 border-t pt-6">
-              <h4 className="font-semibold text-gray-700">Document Information</h4>
+                {/* Document Information */}
+                <motion.div className="space-y-6 border-t-2 border-blue-200 pt-8">
+                  <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Document Information</h3>
 
-              <Input
-                label="PAN Number (10-character)"
-                name="pan"
-                value={formData.pan}
-                onChange={handleChange}
-                error={errors.pan}
-                placeholder="ABCTY1234X"
-                required
-              />
+                  <Input
+                    label="PAN Number (10-character)"
+                    name="pan"
+                    value={formData.pan}
+                    onChange={handleChange}
+                    error={errors.pan}
+                    placeholder="ABCTY1234X"
+                    required
+                  />
 
-              <Input
-                label="Aadhaar Number (12-digit)"
-                name="aadhaar"
-                type="tel"
-                value={formData.aadhaar}
-                onChange={handleChange}
-                error={errors.aadhaar}
-                placeholder="123456789012"
-                required
-              />
-            </div>
+                  <Input
+                    label="Aadhaar Number (12-digit)"
+                    name="aadhaar"
+                    type="tel"
+                    value={formData.aadhaar}
+                    onChange={handleChange}
+                    error={errors.aadhaar}
+                    placeholder="123456789012"
+                    required
+                  />
+                </motion.div>
 
-            {/* Consents */}
-            <div className="space-y-4 border-t pt-6">
-              <h4 className="font-semibold text-gray-700">Consents & Agreements</h4>
+                {/* Consents */}
+                <motion.div className="space-y-6 border-t-2 border-blue-200 pt-8">
+                  <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Consents & Agreements</h3>
 
-              <Checkbox
-                name="consent"
-                checked={formData.consent}
-                onChange={handleChange}
-                label="I give my consent for account opening and KYC verification"
-                error={errors.consent}
-              />
+                  <Checkbox
+                    name="consent"
+                    checked={formData.consent}
+                    onChange={handleChange}
+                    label="I give my consent for account opening and KYC verification"
+                    error={errors.consent}
+                  />
 
-              <Checkbox
-                name="termsAccepted"
-                checked={formData.termsAccepted}
-                onChange={handleChange}
-                label="I accept the terms and conditions and privacy policy"
-                error={errors.termsAccepted}
-              />
+                  <Checkbox
+                    name="termsAccepted"
+                    checked={formData.termsAccepted}
+                    onChange={handleChange}
+                    label="I accept the terms and conditions and privacy policy"
+                    error={errors.termsAccepted}
+                  />
 
-              <Checkbox
-                name="marketingConsent"
-                checked={formData.marketingConsent}
-                onChange={handleChange}
-                label="I agree to receive marketing communications"
-              />
-            </div>
+                  <Checkbox
+                    name="marketingConsent"
+                    checked={formData.marketingConsent}
+                    onChange={handleChange}
+                    label="I agree to receive marketing communications"
+                  />
+                </motion.div>
 
-            {/* Benefits */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-2">
-              <h4 className="font-semibold text-green-900 flex items-center gap-2">
-                <CheckCircle size={20} />
-                Account Benefits
-              </h4>
-              <ul className="text-sm text-green-800 space-y-1">
-                <li>✓ Zero balance account - no minimum balance required</li>
-                <li>✓ Digital statements and instant notifications</li>
-                <li>✓ Access to credit products and loan schemes</li>
-                <li>✓ DICGC insurance coverage up to ₹5,00,000</li>
-                <li>✓ 24x7 customer support</li>
-              </ul>
-            </div>
+                {/* Benefits */}
+                <motion.div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-6 space-y-3">
+                  <h4 className="font-black text-green-900 flex items-center gap-2 uppercase tracking-tight text-lg">
+                    <CheckCircle size={24} className="text-green-600" />
+                    Account Benefits
+                  </h4>
+                  <ul className="text-sm text-green-900 space-y-2 font-bold">
+                    <li>✓ Zero balance account - no minimum balance required</li>
+                    <li>✓ Digital statements and instant notifications</li>
+                    <li>✓ Access to credit products and loan schemes</li>
+                    <li>✓ DICGC insurance coverage up to ₹5,00,000</li>
+                    <li>✓ 24x7 customer support</li>
+                  </ul>
+                </motion.div>
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              variant="primary"
-              fullWidth
-              className="flex items-center justify-center gap-2"
-            >
-              <FileCheck size={20} />
-              Proceed to V-CIP Verification
-            </Button>
-          </form>
-        </Card>
-      )}
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  className="flex items-center justify-center gap-2 py-4 text-base"
+                >
+                  <FileCheck size={20} />
+                  Proceed to V-CIP Verification
+                </Button>
+              </form>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stage 2: Processing (V-CIP) */}
-      {stage === 'processing' && (
-        <Card className="p-8 space-y-6">
-          <h3 className="text-xl font-semibold text-gray-800">Video KYC in Progress</h3>
+      <AnimatePresence mode="wait">
+        {stage === 'processing' && (
+          <motion.div
+            key="processing"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Card className="p-8 space-y-8">
+              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
+                Video KYC in Progress
+              </h2>
 
-          {/* Progress Bar */}
-          <ProgressBar
-            progress={progress}
-            text={`Step ${currentStep + 1} of ${vcipSteps.length}`}
-          />
+              <ProgressBar
+                progress={progress}
+                text={`Step ${currentStep + 1} of ${vcipSteps.length}`}
+              />
 
-          {/* Current Step Detail */}
-          <div className="space-y-6">
-            {vcipSteps.map((step, idx) => {
-              const Icon = step.icon;
-              const isCompleted = idx < currentStep;
-              const isCurrent = idx === currentStep;
-              const isPending = idx > currentStep;
+              <div className="space-y-6 border-t-2 border-blue-200 pt-8">
+                {vcipSteps.map((step, idx) => {
+                  const Icon = step.icon;
+                  const isCompleted = idx < currentStep;
+                  const isCurrent = idx === currentStep;
 
-              return (
-                <div key={idx} className="flex items-start gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      isCompleted
-                        ? 'bg-green-100'
-                        : isCurrent
-                        ? 'bg-blue-100 animate-pulse'
-                        : 'bg-gray-100'
-                    }`}
-                  >
-                    <Icon
-                      className={
-                        isCompleted
-                          ? 'text-green-600'
-                          : isCurrent
-                          ? 'text-blue-600 animate-spin'
-                          : 'text-gray-400'
-                      }
-                      size={24}
-                    />
-                  </div>
-
-                  <div className="flex-1">
-                    <p
-                      className={`font-semibold ${
-                        isCompleted
-                          ? 'text-green-700'
-                          : isCurrent
-                          ? 'text-blue-700'
-                          : 'text-gray-600'
-                      }`}
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="flex items-start gap-4"
                     >
-                      {step.text}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">{step.description}</p>
-                  </div>
+                      <motion.div
+                        className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 border-2 ${
+                          isCompleted
+                            ? 'bg-green-50 border-green-300'
+                            : isCurrent
+                            ? 'bg-blue-50 border-blue-400'
+                            : 'bg-gray-50 border-gray-300'
+                        }`}
+                        animate={isCurrent ? { scale: [1, 1.05, 1] } : {}}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <Icon
+                          className={`font-bold ${
+                            isCompleted
+                              ? 'text-green-600'
+                              : isCurrent
+                              ? 'text-blue-600'
+                              : 'text-gray-400'
+                          }`}
+                          size={24}
+                        />
+                      </motion.div>
 
-                  {isCompleted && (
-                    <Badge variant="success" size="sm">
-                      Complete
-                    </Badge>
-                  )}
-                  {isCurrent && (
-                    <Badge variant="primary" size="sm">
-                      Processing...
-                    </Badge>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                      <div className="flex-1">
+                        <p
+                          className={`font-black ${
+                            isCompleted
+                              ? 'text-green-900'
+                              : isCurrent
+                              ? 'text-blue-900'
+                              : 'text-gray-600'
+                          } uppercase tracking-tight`}
+                        >
+                          {step.text}
+                        </p>
+                        <p className="text-sm text-gray-700 mt-1 font-bold">
+                          {step.description}
+                        </p>
+                      </div>
 
-          {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900">
-              ℹ️ Your account is being created. Please don't close this window or refresh the page.
-            </p>
-          </div>
-        </Card>
-      )}
+                      {isCompleted && <Badge variant="success">Complete</Badge>}
+                      {isCurrent && <Badge variant="primary">Processing...</Badge>}
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4"
+              >
+                <p className="text-sm text-blue-900 font-bold">
+                  ℹ️ Your account is being created. Please don't close this window or refresh the page.
+                </p>
+              </motion.div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stage 3: Success */}
-      {stage === 'success' && accountDetails && (
-        <div className="space-y-6">
-          {/* Success Message */}
-          <StatusBox
-            type="success"
-            title="✅ Congratulations! Your Account is Ready"
+      <AnimatePresence mode="wait">
+        {stage === 'success' && accountDetails && (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-8"
           >
-            <div className="mt-4 space-y-3">
-              <p>
-                Welcome, <strong>{formData.name}</strong>! Your bank account has been successfully created.
-              </p>
-              <p className="text-sm">
-                You can now start using your account for deposits, transfers, and availing loans.
-              </p>
-            </div>
-          </StatusBox>
-
-          {/* Account Details Card */}
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-8">
-            <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <CreditCard size={24} className="text-blue-600" />
-              Your Account Details
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Account Number */}
-              <div className="p-4 bg-white rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Account Number</p>
-                <p className="text-xl font-mono font-bold text-gray-900 mt-2">
-                  {accountDetails.accountNumber}
+            {/* Success Message */}
+            <StatusBox
+              type="success"
+              title="✅ Account Successfully Created!"
+            >
+              <div className="mt-4 space-y-3 font-bold text-green-900">
+                <p>
+                  Welcome, <span className="text-lg font-black">{formData.name}</span>! Your bank account has been successfully created with CredBridge.
+                </p>
+                <p className="text-sm">
+                  You can now start using your account for deposits, transfers, and availing loans instantly.
                 </p>
               </div>
+            </StatusBox>
 
-              {/* IFSC Code */}
-              <div className="p-4 bg-white rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase">IFSC Code</p>
-                <p className="text-xl font-mono font-bold text-gray-900 mt-2">
-                  {accountDetails.ifscCode}
-                </p>
+            {/* Account Details Card */}
+            <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-300 p-8">
+              <h2 className="text-2xl font-black text-gray-900 mb-8 flex items-center gap-3 uppercase tracking-tight">
+                <CreditCard size={28} className="text-blue-600" />
+                Your Account Details
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {[
+                  { label: 'Account Number', value: accountDetails.accountNumber },
+                  { label: 'IFSC Code', value: accountDetails.ifscCode },
+                  { label: 'Bank Name', value: accountDetails.bankName },
+                  { label: 'Customer ID', value: accountDetails.customerId },
+                ].map((item, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="p-5 bg-white rounded-lg border-2 border-blue-200"
+                  >
+                    <p className="text-xs text-gray-700 font-black uppercase tracking-wider mb-2">
+                      {item.label}
+                    </p>
+                    <p className="text-lg font-mono font-black text-gray-900">
+                      {item.value}
+                    </p>
+                  </motion.div>
+                ))}
               </div>
 
-              {/* Bank Name */}
-              <div className="p-4 bg-white rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Bank Name</p>
-                <p className="text-lg font-bold text-gray-900 mt-2">{accountDetails.bankName}</p>
+              <div className="bg-white rounded-lg border-2 border-blue-200 p-5 space-y-4">
+                <div className="flex justify-between items-center py-3 border-b-2 border-blue-200">
+                  <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">Account Type</span>
+                  <Badge variant="success">{accountDetails.accountType}</Badge>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b-2 border-blue-200">
+                  <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">Status</span>
+                  <Badge variant="success">{accountDetails.status}</Badge>
+                </div>
+                <div className="flex justify-between items-center py-3">
+                  <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">Insurance Coverage</span>
+                  <span className="font-black text-gray-900">₹{accountDetails.depositInsuranceLimit.toLocaleString()}</span>
+                </div>
               </div>
+            </Card>
 
-              {/* Customer ID */}
-              <div className="p-4 bg-white rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Customer ID</p>
-                <p className="text-xl font-mono font-bold text-gray-900 mt-2">
-                  {accountDetails.customerId}
-                </p>
-              </div>
+            {/* Next Steps */}
+            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 p-8">
+              <h3 className="font-black text-green-900 mb-6 flex items-center gap-2 uppercase tracking-tight text-lg">
+                <CheckCircle size={24} className="text-green-600" />
+                Next Steps to Maximize Your Account
+              </h3>
+              <ol className="space-y-3 text-sm text-green-900 font-bold">
+                <li>1. Download your account statement and save securely</li>
+                <li>2. Set up mobile banking and enable notifications</li>
+                <li>3. Link your account to CredBridge loan application</li>
+                <li>4. Complete your financial profile for better loan offers</li>
+                <li>5. Apply for credit products and avail special rates</li>
+              </ol>
+            </Card>
 
-              {/* Account Type */}
-              <div className="p-4 bg-white rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Account Type</p>
-                <Badge variant="success">{accountDetails.accountType}</Badge>
-              </div>
-
-              {/* Status */}
-              <div className="p-4 bg-white rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Status</p>
-                <Badge variant="success">{accountDetails.status}</Badge>
-              </div>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button variant="outline" onClick={handleReset} fullWidth className="py-4">
+                Create Another Account
+              </Button>
+              <Button variant="primary" fullWidth className="py-4 flex items-center justify-center gap-2">
+                <Download size={20} />
+                Download Statement
+              </Button>
+              <Button variant="primary" fullWidth className="py-4 flex items-center justify-center gap-2">
+                Apply for Loan
+                <ArrowRight size={20} />
+              </Button>
             </div>
-
-            {/* Additional Info */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Opening Date:</span>
-                <span className="font-semibold text-gray-900">{accountDetails.openingDate}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Insurance Coverage:</span>
-                <span className="font-semibold text-gray-900">₹{accountDetails.depositInsuranceLimit.toLocaleString()}</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Next Steps */}
-          <Card className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200">
-            <h4 className="font-bold text-green-900 mb-3 flex items-center gap-2">
-              <CheckCircle size={20} />
-              Next Steps
-            </h4>
-            <ol className="space-y-2 text-sm text-green-800">
-              <li>1. Download your account statement</li>
-              <li>2. Set up mobile banking and enable notifications</li>
-              <li>3. Link your savings account to our loan application</li>
-              <li>4. Complete your financial profile for better loan offers</li>
-              <li>5. Apply for credit products and avail special rates</li>
-            </ol>
-          </Card>
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" onClick={handleReset} fullWidth>
-              Create Another Account
-            </Button>
-            <Button variant="primary" fullWidth>
-              Download Account Statement
-            </Button>
-            <Button variant="primary" fullWidth>
-              Proceed to Loan Application
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
