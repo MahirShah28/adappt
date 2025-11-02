@@ -7,4 +7,4 @@ export { default as ProgressBar } from './ProgressBar';
 export { default as StatusBox } from './StatusBox';
 export { default as Alert } from './Alert';
 export { default as Badge } from './Badge';
-export { default as Checkbox } from './Checkbox';
+export { default as Checkbox } from './CheckBox';
