@@ -18,7 +18,9 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-10">
             <a href="#home" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Home</a>
             <a href="#features" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Features</a>
-            <a href="#products" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Products</a>            
+            <a href="#products" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Products</a>
+            <a href="#about" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">About</a>
+            <a href="#contact" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Contact</a>
             <button className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Login</button>
             <button className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 py-2.5 rounded-md text-sm hover:shadow-lg transition-all">
               Sign Up
